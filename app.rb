@@ -32,14 +32,22 @@ end
 
 ###################################
 #Handle
-def run(format_id, file_name)
+def run(format_or_format_id, file_name)
   data = list_post(file_name)
 
   if block_given?
     yield(data)
   else
-    formatter = get_formatter(format_id)
-    formatter.format(data)
+    if format_or_format_id.is_a?(Proc)
+      formatter = format_or_format_id
+      puts 'Before calling proc/lambda'
+      formatter.call(data)
+      puts('After calling proc/lambda')
+    else
+      format_id = format_or_format_id
+      formatter = get_formatter(format_id)
+      formatter.format(data)
+    end
   end
 end
 
@@ -133,16 +141,27 @@ end
 
 def test_anonymous_format
   file_name = "data_3.yml"
-  output = run(nil, file_name) { |data|
+
+  custom_formater = Proc.new { |data|
+    return 'nothing'
     titles = data.map {|p| "- #{p['title']}" }
     titles.join("\n")
   }
+
+  custom_formater_lambda = lambda { |data|
+    return 'nothing'
+    titles = data.map {|p| "- #{p['title']}" }
+    titles.join("\n")
+  }
+
+  puts 'TEST ANONYMOUS FORMAT:'
+  output = run(custom_formater_lambda, file_name)
 
   expected_output = "- post 1
 - post 3"
 
   puts "Real output:"
-  p output
+  p(output.nil? ? nil : output)
   puts "Expected output:"
   p expected_output
   puts "Real output == expected output: #{output == expected_output}"
